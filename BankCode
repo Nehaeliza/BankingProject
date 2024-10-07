@@ -667,6 +667,7 @@ namespace BankingProject
         public DWidnowClose NewWindowClose;
         public DWidnowClose EditWindowClose;
         public delegate bool ValidationDelegate(AccountModel account, out string errorMessage);
+        
 
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -707,6 +708,54 @@ namespace BankingProject
             errorMessage = string.Empty;
             return true;
         }
+
+        public bool ValidateName(AccountModel account, out string errorMessage)
+        {
+            if (account.Name.Length == 0)
+            {
+                errorMessage = "Name is mandatory";
+                return false;
+            }
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        public bool ValidateAddress(AccountModel account, out string errorMessage)
+        {
+            if (account.Address.Length == 0)
+            {
+                errorMessage = "Address is mandatory";
+                return false;
+            }
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        public bool ValidateType(AccountModel account, out string errorMessage)
+        {
+            if (account.AccType.== 0)
+            {
+                errorMessage = "Address is mandatory";
+                return false;
+            }
+            errorMessage = string.Empty;
+            return true;
+        }
+
+
+
+        //public bool ValidateIsActive(AccountModel account, out string errorMessage)
+        //{
+        //    if (account.IsActive.IsChecked)
+        //    {
+        //        errorMessage = "Address is mandatory";
+        //        return false;
+        //    }
+        //    errorMessage = string.Empty;
+        //    return true;
+        //}
+
+
 
         private List<ValidationDelegate>_validations = new List<ValidationDelegate>();
 
@@ -806,6 +855,8 @@ namespace BankingProject
             _validations.Add(ValidateAccountNumber);
             _validations.Add(ValidateEmail);
             _validations.Add(ValidatePhoneNumber);
+            _validations.Add(ValidateName);
+            _validations.Add(ValidateAddress);
 
         }
 
