@@ -731,31 +731,11 @@ namespace BankingProject
             return true;
         }
 
-        public bool ValidateType(AccountModel account, out string errorMessage)
-        {
-            if (account.AccType.== 0)
-            {
-                errorMessage = "Address is mandatory";
-                return false;
-            }
-            errorMessage = string.Empty;
-            return true;
-        }
+       
 
 
 
-        //public bool ValidateIsActive(AccountModel account, out string errorMessage)
-        //{
-        //    if (account.IsActive.IsChecked)
-        //    {
-        //        errorMessage = "Address is mandatory";
-        //        return false;
-        //    }
-        //    errorMessage = string.Empty;
-        //    return true;
-        //}
-
-
+        
 
         private List<ValidationDelegate>_validations = new List<ValidationDelegate>();
 
