@@ -224,6 +224,7 @@ namespace BankingProject
         /// Initializes a new instance of the AccountMemoryRepo class.
         /// </summary>
 
+
         private AccountMemoryRepo()
         {
             accounts = new ObservableCollection<AccountModel>();
@@ -239,7 +240,7 @@ namespace BankingProject
             accounts.Add(new AccountModel
 
             {
-                AccNo = 99999,
+                AccNo = "99999",
                 Name = "NJ",
                 Balance = 0,
                 AccType = "savings",
@@ -255,7 +256,7 @@ namespace BankingProject
             });
             accounts.Add(new AccountModel
             {
-                AccNo = 3132324,
+                AccNo = "3132324",
                 Name = "Ahanna",
                 Balance = 0,
                 AccType = "current",
@@ -315,7 +316,7 @@ namespace BankingProject
         {
             try
             {
-                var existingAccount = accounts.FirstOrDefault(a => a.AccNo == account.AccNo);
+                var existingAccount = accounts.FirstOrDefault(a => a.AccNo.CompareTo( account.AccNo)==0);
                 if (existingAccount != null)
                 {
                     existingAccount.Address = account.Address;
@@ -358,9 +359,24 @@ namespace BankingProject
         /// </summary>
         /// <param name="acNo">The account number of the account to delete.</param>
         /// <param name="account">The account to delete.</param>
-        public void DeleteAccount(int acNo, AccountModel account)
+        public void DeleteAccount(AccountModel account)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var existingAccount = accounts.FirstOrDefault(a => a.AccNo.CompareTo( account.AccNo)==0);
+                if (existingAccount != null)
+                {
+                    existingAccount.IsActive = false;
+                }
+                else
+                {
+                    throw new AccountException("Account doesn't exists");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         /// <summary>
@@ -370,18 +386,29 @@ namespace BankingProject
         /// <param name="Amount">The amount to deposit.</param>
         /// <exception cref="AccountException">Thrown if the account does not exist</exception>
 
-        public void Deposit(int acNo, int Amount)
+        public void Deposit(string acNo, int Amount)
         {
 
             try
             {
-                var account = accounts.FirstOrDefault(a => a.AccNo == acNo);
+                var account = accounts.FirstOrDefault(a => a.AccNo.CompareTo(acNo) == 0);
                 if (account != null)
                 {
-                    account.Balance = account.Balance + Amount;
-                    account.LastTransactionDate = DateTime.Now;
-                    account.TransactionCount = account.TransactionCount + 1;
+                    if (Amount < 0 || Amount > 1000000)
+                    {
 
+                        throw new AccountException("Please input Valid Amount");
+                    }
+                    
+                   
+                    else
+                    {
+
+                        account.Balance = account.Balance + Amount;
+                        account.LastTransactionDate = DateTime.Now;
+                        account.TransactionCount = account.TransactionCount + 1;
+
+                    }
                 }
                 else
                 {
@@ -402,14 +429,14 @@ namespace BankingProject
         /// <param name="Amount">The amount to withdraw.</param>
         /// <exception cref="AccountException">Thrown if the account does not exist or if the balance is insufficient.</exception>
 
-        public void Withdrw(int acNo, int Amount)
+        public void Withdrw(string acNo, int Amount)
         {
             try
             {
-                var account = accounts.FirstOrDefault(a => a.AccNo == acNo);
+                var account = accounts.FirstOrDefault(a => a.AccNo.CompareTo( acNo) == 0);
                 if (account != null)
                 {
-                    if (account.Balance < Amount)
+                    if (account.Balance < Amount || Amount<0)
                     {
                         throw new AccountException("Insufficient balance");
 
@@ -439,7 +466,6 @@ namespace BankingProject
     }
 }
 
-
 AccountModel.cs
 ----------------------
 
@@ -462,7 +488,7 @@ namespace BankingProject
         /// <summary>
         /// Gets or sets the account number.
         /// </summary>
-        public int AccNo { get; set; }
+        public string AccNo { get; set; }
 
 
         /// <summary>
@@ -625,6 +651,9 @@ using System.Security.RightsManagement;
 using System.Globalization;
 using System.Windows.Data;
 using log4net.Repository.Hierarchy;
+using System.Text.RegularExpressions;
+using System.Windows.Controls;
+
 
 namespace BankingProject
 {
@@ -637,6 +666,7 @@ namespace BankingProject
     {
         public DWidnowClose NewWindowClose;
         public DWidnowClose EditWindowClose;
+        public delegate bool ValidationDelegate(AccountModel account, out string errorMessage);
 
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -645,6 +675,40 @@ namespace BankingProject
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
         }
 
+        public bool ValidateAccountNumber(AccountModel account, out string errorMessage)
+        {
+            if (account.AccNo.Length < 12)
+            {
+                errorMessage = "Account must be a 12 digit number";
+                return false;
+            }
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        public bool ValidateEmail(AccountModel account, out string errorMessage)
+        {
+            if (string.IsNullOrWhiteSpace(account.Email) || !account.Email.Contains("@"))
+            {
+                errorMessage = "Please enter valid email address";
+                return false;
+            }
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        public bool ValidatePhoneNumber(AccountModel account, out string errorMessage)
+        {
+            if (account.PhoneNumber.Length != 10 || !account.PhoneNumber.All(char.IsDigit))
+            {
+                errorMessage = "Phone number must be 10 digit number";
+                return false;
+            }
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        private List<ValidationDelegate>_validations = new List<ValidationDelegate>();
 
 
         /// <summary>
@@ -674,6 +738,8 @@ namespace BankingProject
             get => _selectedAccount;
             set { _selectedAccount = value; OnPropertyChanged(nameof(SelectedAccount)); }
         }
+
+        public string AccNo { get; set; }
 
         /// <summary>
         /// Gets the accounts repository.
@@ -714,11 +780,13 @@ namespace BankingProject
         /// <summary>
         /// Initializes a new instance of the <see cref="AccountViewModel"/> class.
         /// </summary>
+        /// 
+        public ICommand DeleteCommand { get; }
         public AccountViewModel()
         {
             this.NewAccount = new AccountModel
             {
-                AccNo = 00000,
+                AccNo = "",
                 Name = "",
                 Balance = 0,
                 AccType = "",
@@ -734,6 +802,11 @@ namespace BankingProject
             };
             CreateCommand = new RelayCommand(Create);
             UpdateCommand = new RelayCommand(Update);
+            DeleteCommand = new RelayCommand(Delete);
+            _validations.Add(ValidateAccountNumber);
+            _validations.Add(ValidateEmail);
+            _validations.Add(ValidatePhoneNumber);
+
         }
 
         /// <summary>
@@ -742,6 +815,15 @@ namespace BankingProject
 
         public void Create()
         {
+
+            foreach (var validate in _validations)
+            {
+                if (!validate(NewAccount, out string errorMessage))
+                {
+                    MessageBox.Show(errorMessage, "validation error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
             AccountModel newAccount = new AccountModel
             {
                 AccNo = NewAccount.AccNo,
@@ -756,6 +838,8 @@ namespace BankingProject
                 TransactionCount = NewAccount.TransactionCount,
                 LastTransactionDate = NewAccount.LastTransactionDate,
             };
+
+            
             var result = MessageBox.Show(messageBoxText: "Are you sure to create?",
                     caption: "Confirm",
                     button: MessageBoxButton.YesNo,
@@ -764,9 +848,10 @@ namespace BankingProject
             {
                 return;
             }
-
+           
             try
             {
+               
                 _repo.Create(newAccount);
 
                 result = MessageBox.Show(messageBoxText: "Created Successfully",
@@ -776,7 +861,7 @@ namespace BankingProject
                 Logger.log.Info($"An account with acoount number {newAccount.AccNo} has been created successfully");
 
 
-                this.NewAccount = new AccountModel { AccNo = 0, Name = "", Balance = 0, AccType = "", Email = "", PhoneNumber = "", Address = "", IsActive = false, InterestPercentage = "0", TransactionCount = 0, LastTransactionDate = DateTime.Now };
+                this.NewAccount = new AccountModel { AccNo = "0", Name = "", Balance = 0, AccType = "", Email = "", PhoneNumber = "", Address = "", IsActive = false, InterestPercentage = "0", TransactionCount = 0, LastTransactionDate = DateTime.Now };
             }
             catch (AccountException ae)
             {
@@ -837,6 +922,36 @@ namespace BankingProject
 
 
 
+        }
+
+        public void Delete() 
+        {
+            if (this.SelectedAccount == null)
+            {
+                return;
+            }
+
+            try
+            {
+
+                _repo.DeleteAccount(this.SelectedAccount);
+                this.SelectedAccount = this.SelectedAccount;
+                var result = MessageBox.Show(messageBoxText: $"Account {SelectedAccount.AccNo} is deleted successfully",
+                        caption: "Alert",
+                        button: MessageBoxButton.OK,
+                        icon: MessageBoxImage.Information);
+                Logger.log.Info($"Account {SelectedAccount.AccNo} is updated successfully");
+            }
+            catch (AccountException ae)
+            {
+                Logger.log.Error(ae.Message);
+            }
+
+
+            if (EditWindowClose != null)
+            {
+                EditWindowClose();
+            }
         }
 
     }
@@ -980,7 +1095,7 @@ AddAccountWindow.xaml
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:BankingProject"
+        xmlns:local="clr-namespace:BankingProject" d:DataContext="{d:DesignInstance Type=local:AccountViewModel}"
         mc:Ignorable="d"
         Title="AddAccountWindow" Height="900" Width="800" Closing="Window_Closing">
 
@@ -999,17 +1114,20 @@ AddAccountWindow.xaml
         <StackPanel Grid.Row="1" Orientation="Vertical" Margin="0 10 0 0">
             <StackPanel Orientation="Horizontal" Margin="10 10 10 10">
                 <TextBlock Width="150" Text="Account Number"/>
-                <TextBox  Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.AccNo}"/>
+                <TextBox x:Name="AccNoTextBox"  Width="300" Margin="100 0 0 0"  Text="{Binding NewAccount.AccNo}" TextChanged="AccNoTextBox_TextChanged"  />
+                <TextBlock x:Name="ErrorMessageTexblock" Foreground="Red" Visibility="Collapsed"/>
+
+
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="10 10 10 10">
                 <TextBlock Width="150" Text="Name"/>
-                <TextBox  Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.Name}"/>
+                <TextBox  x:Name="txtName" Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.Name}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="10 10 10 10">
                 <TextBlock Width="150" Text="Balance" />
-                <TextBox  Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.Balance}" />
+                <TextBox x:Name="txtBalance" Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.Balance}" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="10 10 10 10">
@@ -1020,27 +1138,32 @@ AddAccountWindow.xaml
 
             <StackPanel Orientation="Horizontal" Margin="10 10 10 10">
                 <TextBlock Width="150" Text="Email"/>
-                <TextBox  Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.Email}"/>
+                <TextBox x:Name="EmailTextBox"  Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.Email}" TextChanged="EmailTextBox_TextChanged"/>
+                <TextBlock x:Name="ErrorMessageeTexblock" Foreground="Red"/>
+
+
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="10 10 10 10">
                 <TextBlock Width="150" Text="Phone"/>
-                <TextBox  Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.PhoneNumber}"/>
+                <TextBox  x:Name="PhoneTextBox" Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.PhoneNumber}" TextChanged="PhoneTextBox_TextChanged"/>
+                <TextBlock x:Name="ErrorMessageeeTexblock" Foreground="Red"/>
+
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="10 10 10 10">
                 <TextBlock Width="150" Text="Address"/>
-                <TextBox  Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.Address}"/>
+                <TextBox x:Name="txtAddress" Width="300" Margin="100 0 0 0" Text="{Binding NewAccount.Address}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="10 10 10 10">
                 <TextBlock Width="150" Text="IsActive"/>
-                <CheckBox Content="" Margin="100 0 0 0"  Checked="CheckBox_Checked"/>
+                <CheckBox Content="" Margin="100 0 0 0" IsChecked="True" Checked="CheckBox_Checked"  />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="10 10 10 10">
                 <TextBlock Width="150" Text="Interest Percentage" />
-                <ComboBox Margin="100 0 0 0" >
+                <ComboBox Margin="100 0 0 0" Text="{Binding NewAccount.InterestPercentage}" >
                     <ComboBoxItem x:Name="cmb5" Content="5%"  />
                     <ComboBoxItem x:Name="cmb10" Content="10%"/>
                     <ComboBoxItem x:Name="cmb15" Content="15%"/>
@@ -1071,6 +1194,7 @@ AddAccountWindow.xaml.cs
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Security.Principal;
 using System.Text;
@@ -1091,21 +1215,33 @@ namespace BankingProject
     /// </summary>
     public partial class AddAccountWindow : Window
     {
+
         public AddAccountWindow()
         {
             InitializeComponent();
             this.DataContext = AccountConfig.VueModel;
 
         }
+        private AccountModel account = new AccountModel();
         public void WindowClose()
         {
             this.Hide();
+            ErrorMessageTexblock.Text = string.Empty;
+            ErrorMessageeTexblock.Text = string.Empty;
+            ErrorMessageeeTexblock.Text = string.Empty;
+            AccNoTextBox.Text = string.Empty;
+            txtBalance.Text = string.Empty;
+            txtName.Text = string.Empty;
+            txtBalance.Text += string.Empty;
+            txtAddress.Text = string.Empty;
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             e.Cancel = true;
             this.Hide();
+            
+
         }
 
         private void CurrentRadioButton_Checked(object sender, RoutedEventArgs e)
@@ -1119,16 +1255,99 @@ namespace BankingProject
             AccountConfig.VueModel.NewAccount.AccType = (string)AccountConfig.newAccountWindow.SavingsRadioButton.Content;
         }
 
+        //private void CheckBox_Checked(object sender, RoutedEventArgs e)
+        //{
+        //    AccountConfig.VueModel.NewAccount.IsActive = true;
+        //}
+
+
+
+        private void PhoneTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            account.PhoneNumber = PhoneTextBox.Text;
+
+            if (!ValidatePhoneNumber(account, out string errorMessage))
+            {
+                ErrorMessageeeTexblock.Text = errorMessage;
+            }
+            else
+            {
+                ErrorMessageeeTexblock.Text = string.Empty;
+            }
+        }
+
+        public bool ValidatePhoneNumber(AccountModel account, out string errorMessage)
+        {
+            if (account.PhoneNumber.Length != 10 || !account.PhoneNumber.All(char.IsDigit))
+            {
+                errorMessage = "Phone number must be 10 digit number";
+                return false;
+            }
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        private void EmailTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            account.Email = EmailTextBox.Text;
+
+            if (!ValidateEmail(account, out string errorMessage))
+            {
+                ErrorMessageeTexblock.Text = errorMessage;
+            }
+            else
+            {
+                ErrorMessageeTexblock.Text = string.Empty;
+            }
+
+        }
+
+        public bool ValidateEmail(AccountModel account, out string errorMessage)
+        {
+            if (string.IsNullOrWhiteSpace(account.Email) || !account.Email.Contains("@"))
+            {
+                errorMessage = "Please enter valid email address";
+                return false;
+            }
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        private void AccNoTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            account.AccNo = AccNoTextBox.Text;
+
+            if (!ValidateAccountNumber(account, out string errorMessage))
+            {
+                ErrorMessageTexblock.Text = errorMessage;
+                ErrorMessageTexblock.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ErrorMessageTexblock.Text = string.Empty;
+                ErrorMessageTexblock.Visibility= Visibility.Collapsed;    
+            }
+        }
+
+        public bool ValidateAccountNumber(AccountModel account, out string errorMessage)
+        {
+            if (account.AccNo.Length < 12)
+            {
+                errorMessage = "Account must be a 12 digit number";
+                return false;
+            }
+            errorMessage = string.Empty;
+            return true;
+        }
+
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
             AccountConfig.VueModel.NewAccount.IsActive = true;
         }
-
-       
-
-      
+        
     }
 }
+
 
 App.xaml
 -------------
@@ -1284,8 +1503,8 @@ namespace BankingProject
         /// Gets or sets the account number.
         /// </summary>
 
-        private int _accountNumber;
-        public int AccountNumber
+        private string _accountNumber;
+        public string AccountNumber
         {
             get { return _accountNumber; }
             set
@@ -1351,7 +1570,7 @@ namespace BankingProject
                         button: MessageBoxButton.OK,
                         icon: MessageBoxImage.Information);
                 Logger.log.Info($"Deposited {Amount} rupees Successfully to account {AccountNumber}");
-                this.AccountNumber = 0;
+                this.AccountNumber = "0";
                 this.Amount = 0;
             }
             catch (AccountException ae)
@@ -1372,6 +1591,8 @@ namespace BankingProject
 
 
 }
+
+
 
 DepositWindow.xaml
 ---------------------
@@ -1582,21 +1803,21 @@ namespace BankingProject
         /// <param name="acNo">The account number of the account to delete.</param>
         /// <param name="account">The account to delete.</param>
 
-        void DeleteAccount(int acNo, AccountModel account);
+        void DeleteAccount(AccountModel account);
 
         /// <summary>
         /// Deposits money into an account.
         /// </summary>
         /// <param name="acNo">The account number of the account to deposit into.</param>
         /// <param name="Amount">The amount to deposit.</param>
-        void Deposit(int acNo, int Amount);
+        void Deposit(string acNo, int Amount);
 
         /// <summary>
         /// Withdraws money from an account.
         /// </summary>
         /// <param name="acNo">The account number of the account to withdraw from.</param>
         /// <param name="Amount">The amount to withdraw.</param>
-        void Withdrw(int acNo, int Amount);
+        void Withdrw(string acNo, int Amount);
 
         /// <summary>
         /// Calculates the interest and updates the balance for all accounts.
@@ -1608,8 +1829,7 @@ namespace BankingProject
         /// </summary>
         /// <returns>A collection of all accounts.</returns>
         ObservableCollection<AccountModel> ReadAllAccount();
-
-
+       // void DeleteAccount(AccountModel selectedAccount);
     }
 }
 
@@ -1811,8 +2031,9 @@ namespace BankingProject
     /// </summary>
     public class WithdrawViewModel : INotifyPropertyChanged
     {
-        public DWidnowClose NewWindowClose;
+        public DWidnowClose NewWindowCose;
         public DWidnowClose EditWindowClose;
+       
 
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -1824,8 +2045,8 @@ namespace BankingProject
         /// <summary>
         /// Gets or sets the account number.
         /// </summary>
-        private int _accountNumber;
-        public int AccountNumber
+        private string _accountNumber;
+        public string AccountNumber
         {
             get { return _accountNumber; }
             set
@@ -1893,7 +2114,7 @@ namespace BankingProject
                         button: MessageBoxButton.OK,
                         icon: MessageBoxImage.Information);
                 Logger.log.Info($"Withdrawed {Amount} rupees Successfully from account {AccountNumber}");
-                this.AccountNumber = 0;
+                this.AccountNumber = "0";
                 this.Amount = 0;
             }
             catch (AccountException ae)
@@ -1913,6 +2134,7 @@ namespace BankingProject
     }
 }
    
+
 WithdrawWindow.xaml
 --------------------
 
@@ -2072,8 +2294,8 @@ namespace BankkingProjectTests
                 var accounts = _repo.ReadAllAccount();
 
                 Assert.AreEqual(2, accounts.Count);
-                Assert.IsTrue(accounts.Any(a => a.AccNo == 3132324));
-                Assert.IsTrue(accounts.Any(a => a.AccNo == 99999));
+                Assert.IsTrue(accounts.Any(a => a.AccNo == "3132324"));
+                Assert.IsTrue(accounts.Any(a => a.AccNo == "99999"));
             }
 
             [TestMethod]
@@ -2081,7 +2303,7 @@ namespace BankkingProjectTests
             {
                 var account = new AccountModel()
                 {
-                    AccNo = 99999,
+                    AccNo = "99999",
                     Name = "NJ",
                     Balance = 0,
                     AccType = "savings",
@@ -2095,7 +2317,7 @@ namespace BankkingProjectTests
                 };
                 _repo.Create(account);
 
-                Assert.IsTrue(_repo.ReadAllAccount().Any(ac => ac.AccNo == 99999));
+                Assert.IsTrue(_repo.ReadAllAccount().Any(ac => ac.AccNo == "99999"));
             }
 
             [TestMethod]
@@ -2103,7 +2325,7 @@ namespace BankkingProjectTests
             {
                 AccountModel account = new AccountModel
                 {
-                    AccNo = 3132324,
+                    AccNo = "3132324",
                     Name = "Ahanna",
                     Balance = 0,
                     AccType = "current",
@@ -2118,14 +2340,14 @@ namespace BankkingProjectTests
 
                 account.Address = "New Address";
                 _repo.UpdateAccount(account);
-                Assert.AreEqual("New Address", _repo.ReadAllAccount().First(a => a.AccNo == 3132324).Address);
+                Assert.AreEqual("New Address", _repo.ReadAllAccount().First(a => a.AccNo == "3132324").Address);
             }
             [TestMethod]
             public void Test_Deposit()
             {
                 AccountModel account = new AccountModel
                 {
-                    AccNo = 99999,
+                    AccNo = "99999",
                     Name = "NJ",
                     Balance = 0,
                     AccType = "savings",
@@ -2148,7 +2370,7 @@ namespace BankkingProjectTests
             {
                 var account = new AccountModel()
                 {
-                    AccNo = 3132324,
+                    AccNo = "3132324",
                     Name = "Ahanna",
                     Balance = 0,
                     AccType = "current",
