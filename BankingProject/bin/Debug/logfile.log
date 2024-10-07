@@ -1,0 +1,21 @@
+2024-10-06 19:41:20,444 [1] INFO  BankingProject.Logger - An account with acoount number 900 has been created successfully
+2024-10-06 19:52:55,937 [1] INFO  BankingProject.Logger - An account with acoount number 222 has been created successfully
+2024-10-06 19:53:56,307 [1] INFO  BankingProject.Logger - Deposited 2000 rupees Successfully to account 222
+2024-10-06 19:55:54,510 [1] INFO  BankingProject.Logger - An account with acoount number 67 has been created successfully
+2024-10-06 20:10:16,025 [1] INFO  BankingProject.Logger - An account with acoount number 222 has been created successfully
+2024-10-06 20:25:25,956 [1] INFO  BankingProject.Logger - An account with acoount number 10 has been created successfully
+2024-10-06 20:25:48,165 [1] INFO  BankingProject.Logger - An account with acoount number 98 has been created successfully
+2024-10-06 20:34:12,805 [1] INFO  BankingProject.Logger - An account with acoount number 9000 has been created successfully
+2024-10-06 20:34:48,457 [1] INFO  BankingProject.Logger - Deposited 100 rupees Successfully to account 9000
+2024-10-06 23:08:36,084 [1] INFO  BankingProject.Logger - An account with acoount number 78 has been created successfully
+2024-10-06 23:08:53,250 [1] INFO  BankingProject.Logger - Deposited 10000 rupees Successfully to account 78
+2024-10-06 23:10:56,977 [1] INFO  BankingProject.Logger - Deposited 10000 rupees Successfully to account 99999
+2024-10-07 09:34:19,693 [1] INFO  BankingProject.Logger - An account with acoount number 0 has been created successfully
+2024-10-07 09:36:33,375 [1] INFO  BankingProject.Logger - Account 0 is updated successfully
+2024-10-07 09:37:12,171 [1] INFO  BankingProject.Logger - An account with acoount number 7777 has been created successfully
+2024-10-07 09:37:40,117 [1] INFO  BankingProject.Logger - An account with acoount number 8899 has been created successfully
+2024-10-07 09:41:40,232 [1] INFO  BankingProject.Logger - An account with acoount number 12456 has been created successfully
+2024-10-07 09:42:13,448 [1] INFO  BankingProject.Logger - An account with acoount number 80 has been created successfully
+2024-10-07 09:45:58,202 [1] INFO  BankingProject.Logger - An account with acoount number 900 has been created successfully
+2024-10-07 09:51:16,638 [1] INFO  BankingProject.Logger - An account with acoount number 9000 has been created successfully
+2024-10-07 09:51:41,705 [1] INFO  BankingProject.Logger - Account 9000 is updated successfully
